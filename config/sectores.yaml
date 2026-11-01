@@ -2,6 +2,8 @@
 # Revisar periódicamente. Unidades: ltv_max en %, plazo en años, diferencial en puntos porcentuales sobre vivienda habitual.
 version: 0.1
 fecha_referencia: 2026-11-01
+region: comunidad_madrid
+flujo_prioritario: subrogacion
 comun:
   dti_max: 35            # % de ingresos netos para cuotas totales
   dti_max_ingresos_altos: 40

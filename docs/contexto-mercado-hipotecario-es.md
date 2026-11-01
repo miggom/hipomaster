@@ -1,7 +1,8 @@
 # Contexto del mercado hipotecario español (MVP)
 
 Documento base para los agentes LangGraph de HipoMaster (analista de mercado, buscador de ofertas, gestor financiero y coordinador).
-Los valores numéricos son **orientativos (2025-2026)**. Los agentes deben refrescarlos desde las fuentes de la sección 8, nunca darlos por fijos.
+Los valores numéricos están **fechados a noviembre de 2026** (detalle y fuentes en [research/Hipotecas y subrogación Madrid 2026.md](research/Hipotecas%20y%20subrogaci%C3%B3n%20Madrid%202026.md)).
+Región inicial del MVP: **Comunidad de Madrid**. Flujo prioritario: **subrogación / cambio de banco**. Los agentes deben refrescarlos desde las fuentes de la sección 8, nunca darlos por fijos.
 
 ## 1. Alcance del MVP
 
@@ -9,7 +10,7 @@ Los valores numéricos son **orientativos (2025-2026)**. Los agentes deben refre
 |---|---|---|
 | Comprador | Persona física, residente en España, nacionalidad española | No residentes, extranjeros residentes, empresas/autónomos como sociedad |
 | Activos | Vivienda (habitual y segunda), locales, garajes, terrenos, naves, trasteros | Hoteles, edificios completos, suelo para promoción |
-| Operación | Compra, subrogación, cambio de banco (refinanciación) | Promotor, autopromoción compleja, hipoteca inversa |
+| Operación | **Subrogación / cambio de banco (prioritario)**, compra | Promotor, autopromoción compleja, hipoteca inversa |
 
 ## 2. Marco normativo clave
 
@@ -33,6 +34,32 @@ Los valores numéricos son **orientativos (2025-2026)**. Los agentes deben refre
   - Terreno rústico: ITP; terreno urbano por promotor: IVA 21 %.
 - **Ayudas públicas**: Aval ICO para jóvenes (< 35 años) y familias con menores, cubre hasta el 20 % del préstamo (LTV hasta 100 %) en vivienda habitual, con límites de ingresos y precio por CCAA. Hay programas autonómicos (Madrid "Mi Primera Vivienda", Galicia, Andalucía, etc.).
 
+## 2b. Subrogación / cambio de banco (flujo prioritario)
+
+- **Base legal**: Ley 2/1994 modificada por Ley 5/2019. No hace falta consentimiento del banco actual.
+- **Proceso** (aprox. 40 días):
+  1. El cliente pide oferta al banco nuevo (tasación a cargo del cliente, 250-450 €).
+  2. El banco nuevo entrega **oferta vinculante** y la notifica al banco actual.
+  3. El banco actual entrega certificado de deuda y tiene **15 días naturales** para igualar la oferta (**enervación**, vía novación). Aunque iguale, **decide el cliente**.
+  4. Firma ante notario. Si el banco actual no acepta el pago, se deposita ante notario.
+- **Qué puede cambiar**: solo tipo de interés y plazo. Más capital exige cancelación + hipoteca nueva.
+- **Costes**: escritura **exenta de AJD**; aranceles notariales como documento sin cuantía y registro con 90 % de reducción. El banco nuevo suele pagar notaría, registro y gestoría. El cliente paga tasación y la **comisión del banco de origen**:
+  - Variable firmada desde 16/06/2019: 0,15 % (3 años) o 0,25 % (5 años), luego 0 %.
+  - Fija desde 16/06/2019: 2 % los 10 primeros años, 1,5 % después.
+  - Paso de variable a fija: 0,05 % los 3 primeros años, luego 0 % (la exención total terminó el 31/12/2024).
+  - Préstamos anteriores a 2019: según contrato (variable antiguo hasta 1 % o 0,5 %/0,25 %).
+- **Alternativas** que el agente debe comparar siempre: novación con el mismo banco (exenta de AJD si solo cambia tipo o plazo), subrogación y cancelación + hipoteca nueva.
+- **Entidades con subrogación documentada (nov-2026)**: Ibercaja, Sabadell, Kutxabank, ING, BBVA, Santander (LTV máx. 70 %), CaixaBank, Bankinter, Unicaja, MyInvestor (paga todos los gastos y la comisión de origen; exige 4.000 € netos/mes, 70.000 € pendientes y firma anterior a 10/2018). Openbank solo por cancelación + hipoteca nueva.
+- **Ayudas**: Mi Primera Vivienda y aval ICO **no aplican** a subrogación.
+
+## 2c. Comunidad de Madrid (fiscalidad y ayudas 2026)
+
+- **ITP** segunda mano: 6 %. Vivienda habitual ≤ 250.000 €: bonificación del 10 % (5,4 % efectivo). Familia numerosa: 4 %. Menores de 35 en municipios < 2.500 habitantes: 100 %.
+- **AJD** obra nueva (comprador particular): 0,4 % hasta 120.000 €, 0,5 % hasta 180.000 €, 0,75 % por encima. La AJD de la escritura de hipoteca la paga el banco.
+- **Mi Primera Vivienda** (orden julio 2026): precio ≤ 425.000 €, edad ≤ 50 años (100 % de financiación < 40, 95 % de 40 a 45, 90 % de 45 a 50); sin límite de edad para familias con menores; 2 años de residencia en Madrid; sin otra vivienda. Entidades: CaixaBank, Santander, Ibercaja, ING, Unicaja, Kutxabank, Abanca, Sabadell, Eurocaja Rural (y anunciadas Bankinter, Cajamar, UCI).
+- **Aval ICO jóvenes**: prorrogado hasta 31/12/2027; menores de 36 o familias con menores; cubre el tramo por encima del 80 %.
+- Pendiente de verificar en BOCM: tipos de ITP/AJD y la tributación de locales, garajes, terrenos y naves.
+
 ## 3. Productos
 
 | Tipo | Descripción | Notas para el agente |
@@ -53,7 +80,7 @@ Ver detalle estructurado en [`config/sectores.yaml`](../config/sectores.yaml).
 
 | Sector | LTV máx. habitual | Plazo máx. | Diferencial / tipo frente a vivienda | Observaciones |
 |---|---|---|---|---|
-| Vivienda habitual | 80 % (90-100 % con aval ICO/CCAA) | 30-40 años (edad + plazo ≤ 70-75) | Referencia | Mejor condición del mercado |
+| Vivienda habitual | 80 % (90-100 % con aval ICO o Mi Primera Vivienda Madrid) | 30-40 años (edad + plazo ≤ 70-75) | Referencia | Mejor condición del mercado |
 | Segunda vivienda | 60-70 % | 25-30 años | +0,2 a +0,5 pp | Menos bonificaciones |
 | Local comercial | 50-70 % | 15-20 años | +0,5 a +1,5 pp | Valor de tasación muy dependiente de ubicación y rentas |
 | Garaje | 50-70 % | 10-20 años | +0,5 a +1,5 pp | Importes bajos: a veces préstamo personal es más barato. Si va con la vivienda, mismas condiciones |
@@ -71,12 +98,14 @@ Regla común de solvencia:
 
 ## 5. Tipos de interés de referencia
 
-- **Euríbor 12M** (índice principal). Publicado por EMMI; media mensual oficial por BdE. Rango orientativo 2025-2026: aprox. 2,1-2,5 %.
+- **Euríbor 12M** (índice principal). Media mensual oficial BdE/BOE: **3,247 % sep-2026**, ~3,24 % oct-2026 (provisional). Sube desde 2,22 % en feb-2026; BCE subió en junio y septiembre 2026 (depósito 2,50 %).
+- **IRPH Entidades**: 3,189 % (sep-2026).
+- Tipo medio nuevas hipotecas vivienda (BdE, ago-2026): TEDR 3,04 %, TAE 3,10 %. INE ago-2026: tipo medio 3,08 %, 64 % a tipo fijo, plazo medio 26 años.
 - Otros índices oficiales: IRPH Entidades, IRPH Cajas (residual), CECA, Mibor (residual), Euríbor a 6M.
-- Tipos orientativos de mercado 2025-2026 en vivienda habitual (bonificado):
-  - Fijo: 2,2-3,0 % TIN.
-  - Variable: Euríbor + 0,49-0,9 %.
-  - Mixto: 2,0-2,6 % los primeros años, luego Euríbor + 0,6-1 %.
+- Ofertas de mercado nov-2026 en vivienda habitual (bonificado, según comparadores; confirmar en FEIN):
+  - Fijo: 2,55-3,35 % TIN (Ibercaja, Banca March, Sabadell, Openbank, CaixaBank, BBVA, Santander). Sin vinculación: MyInvestor 3,40 % TIN / 3,61 % TAE.
+  - Variable: Euríbor + 0,45-0,65 %.
+  - Mixto: desde 1,80 % (Sabadell 3 años) y luego Euríbor + 0,70 %.
 - **Estos números caducan**. El agente analista los debe refrescar en cada ejecución (ver sección 8).
 
 ## 6. Entidades principales
@@ -137,5 +166,5 @@ Recomendaciones: temperatura 0-0,2 para extracción y cálculo, 0,3-0,5 para red
 
 1. Validar este contexto y responder las preguntas abiertas.
 2. Ajustar `config/sectores.yaml` (fuente única de parámetros de los agentes, versión inicial creada).
-3. Implementar conectores de datos: BdE/BCE (Euríbor), INE (estadísticas), webs de 10 entidades principales.
+3. Implementar conectores: API BdE (series D_1NBAF472 Euríbor, D_1T9H0000 IRPH, DN_1TI2T0002 TEDR, DN_1TI2T0082 TAE), INE tabla 24456 y scraping de entidades (ver research). No usar datos de EMMI (solo uso no comercial).
 4. Diseñar el grafo LangGraph (coordinador + 3 agentes) y el enrutado edge/upstream.
