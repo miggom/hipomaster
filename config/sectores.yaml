@@ -1,0 +1,45 @@
+# Parámetros orientativos por sector (persona física residente en España).
+# Revisar periódicamente. Unidades: ltv_max en %, plazo en años, diferencial en puntos porcentuales sobre vivienda habitual.
+version: 0.1
+fecha_referencia: 2026-11-01
+comun:
+  dti_max: 35            # % de ingresos netos para cuotas totales
+  dti_max_ingresos_altos: 40
+  gastos_compra_pct: [10, 12]
+  edad_max_fin_prestamo: 75
+  indice_referencia: euribor_12m
+sectores:
+  vivienda_habitual:
+    ltv_max: 80
+    ltv_max_con_aval: 100   # aval ICO / programas CCAA
+    plazo_max: 40
+    diferencial_extra: 0
+  segunda_vivienda:
+    ltv_max: 70
+    plazo_max: 30
+    diferencial_extra: [0.2, 0.5]
+  local:
+    ltv_max: 70
+    plazo_max: 20
+    diferencial_extra: [0.5, 1.5]
+  garaje:
+    ltv_max: 70
+    plazo_max: 20
+    diferencial_extra: [0.5, 1.5]
+    nota: "Si se compra con la vivienda, mismas condiciones que la vivienda"
+  trastero:
+    ltv_max: 60
+    plazo_max: 15
+    diferencial_extra: [0.5, 1.5]
+  terreno_urbano:
+    ltv_max: 60
+    plazo_max: 20
+    diferencial_extra: [1.0, 2.0]
+  terreno_rustico:
+    ltv_max: 50
+    plazo_max: 15
+    diferencial_extra: [1.5, 3.0]
+  nave:
+    ltv_max: 60
+    plazo_max: 20
+    diferencial_extra: [1.0, 2.0]
