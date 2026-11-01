@@ -104,7 +104,7 @@ Fichero: [`deploy/vm/docker-compose.yml`](../deploy/vm/docker-compose.yml). Perf
 ### 4.2 Si falta memoria
 En este orden:
 1. Bajar el contexto de `ollama-mid` a 8k.
-2. Mover Langfuse a Langfuse Cloud (plan gratuito) enviando solo trazas anonimizadas. Libera ~3,7 GB.
+2. Mover Langfuse a Langfuse Cloud (plan gratuito). Es posible porque las trazas ya salen anonimizadas (§9.1). Libera ~3,7 GB.
 3. Quitar el perfil `mid` y usar DeepSeek flash como nivel medio (coste API sube).
 4. Ampliar la VM o pasar a AWS (sección 13).
 
@@ -185,8 +185,22 @@ Fase 2: Prometheus + node_exporter + Grafana si se necesitan series históricas 
 - Docker: driver `json-file` con `max-size=10m`, `max-file=5` por contenedor.
 - Fitlet2: journald, máx. 500 MB.
 - Aplicación: logs JSON (structlog), con `thread_id` y `run_id` de LangGraph para cruzar con Langfuse.
-- **PII**: no registrar contenido de documentos ni prompts con datos personales. Langfuse recibe entradas enmascaradas (función de masking del SDK). Retención de trazas 30 días.
+- **PII**: no registrar contenido de documentos ni prompts con datos personales. Langfuse recibe entradas enmascaradas (§9.1). Retención de trazas 30 días.
 - Fase 2: Loki + Promtail si hace falta buscar en logs de varios nodos.
+
+### 9.1 Anonimización de trazas (decisión: Langfuse autoalojado, anonimizado desde el día 1)
+
+Objetivo: que una traza se pueda enviar a Langfuse Cloud sin cambios si algún día se migra.
+
+- **Dónde:** función `mask` única en el código de agentes (`hipomaster/observability/masking.py`), registrada en el cliente de Langfuse (`Langfuse(mask=mask)`). Se aplica antes de enviar cualquier entrada, salida o metadato.
+- **LiteLLM** no envía contenido: `turn_off_message_logging: true` (ya en `litellm/config.yaml`). Solo manda tokens, coste, latencia y modelo. El contenido lo traza el grafo, ya enmascarado.
+- **Qué se enmascara:** DNI/NIE, IBAN, teléfono, email, nombre y apellidos, direcciones y referencias catastrales. Los importes, TIN, TAE y plazos **no** se enmascaran: son los datos que se quieren ver.
+- **Cómo:** (1) regex con validación (letra del DNI, dígitos de control del IBAN); (2) lista de nombres propios del perfil del cliente, que el grafo ya conoce; (3) NER local opcional (spaCy `es_core_news`) en el edge. Marcadores estables por traza (`[NOMBRE_1]`, `[IBAN_1]`) para poder seguir la conversación.
+- **Documentos del cliente:** nunca entran en trazas. Solo `DocRef` y los campos extraídos ya enmascarados.
+- **Prueba obligatoria en CI:** conjunto de textos sintéticos con PII (perfiles de prueba) y un test que falla si algún patrón sobrevive en el payload enviado. Se ejecuta en cada PR que toque `observability/` o `prompts/`.
+- **Variable de entorno:** `TRACE_MASKING=strict` (por defecto). `off` solo en desarrollo con datos sintéticos; el arranque falla si `off` y existen documentos reales.
+- **Migrar a Cloud:** cambiar `LANGFUSE_HOST` y las claves. Antes, auditar una muestra de 50 trazas reales en el Langfuse local y comprobar que no hay PII. Si la muestra tiene fallos, no migrar.
+- **Límite conocido:** el enmascarado automático puede fallar con texto libre. Por eso el autoalojado sigue siendo el destino por defecto con datos reales.
 
 ## 10. CI/CD
 
@@ -197,6 +211,7 @@ Repositorio: `miggom/hipomaster`. GitHub Actions (gratis en repos públicos; en 
 | `ci.yml` | cada push y PR | ruff, mypy, pytest (calculadora y esquemas), `docker compose config`, yamllint, ansible-lint |
 | `build.yml` | merge a `main` | `langgraph build`, imágenes del scraper y UI → GHCR con tag del commit |
 | `deploy.yml` | manual, con environment `produccion` y aprobación | conecta a la tailnet (auth key efímera con `tag:ci`), ejecuta Ansible: `docker compose pull && up -d` en core-01, scraper en edge-04 |
+| `masking` (dentro de `ci.yml`) | PR que toque `observability/` o `prompts/` | test de PII sintética sobre trazas (§9.1) |
 | `evals.yml` | semanal y en PR que toque `prompts/` | casos sintéticos de ARQUITECTURA.md §8 contra modelos edge; DeepSeek/Claude solo con etiqueta `run-paid-evals` |
 
 - Versionado de prompts: `prompts/<agente>/vN.md`. Un cambio de prompt es un PR con evals.
@@ -264,7 +279,7 @@ Región: preferir eu-south-2 (España) o eu-west-3/eu-central-1 por RGPD. Los da
 ## 15. Decisiones abiertas
 
 1. ¿Tailscale (recomendado) o Headscale/WireGuard propio?
-2. ¿Langfuse autoalojado (3,7 GB de RAM) o Langfuse Cloud con trazas anonimizadas?
+2. ~~Langfuse autoalojado o Cloud~~ Resuelta (doc, 2026-11-01): autoalojado con anonimización de trazas desde el día 1 (§9.1), para poder migrar a Cloud.
 3. ¿Destino externo de backups: Backblaze B2 o S3?
 4. ¿Telegram como canal de alertas?
 5. Disco real de los fitlet2 y de la VM.
