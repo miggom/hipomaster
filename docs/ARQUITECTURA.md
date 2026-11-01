@@ -10,9 +10,10 @@ Encontrar la mejor hipoteca para un cliente en España, explicando por qué.
 Dentro del MVP:
 - Cliente: persona física residente, comprador español. Extranjeros y empresas quedan para perfiles posteriores.
 - Inmuebles: vivienda (habitual y segunda), local comercial, garaje, trastero, terreno, nave.
-- Operaciones: compra con hipoteca. Subrogación, cambio de banco y novación quedan fuera del MVP pero el modelo de datos los admite.
+- Operaciones: compra con hipoteca y **subrogación (cambio de banco), prioritaria**: el usuario la testeará con su propia hipoteca. Novación queda fuera del MVP.
+- Ámbito geográfico inicial: Madrid (ITP, bonificaciones y programas de la Comunidad de Madrid).
 
-Fuera del MVP: no residentes, sociedades, promotores, refinanciaciones complejas, firma o envío de solicitudes al banco.
+Fuera del MVP: no residentes, sociedades, promotores, novaciones, firma o envío de solicitudes al banco.
 
 ## 2. Contexto del mercado hipotecario español
 
@@ -166,9 +167,20 @@ Alternativas: LangGraph Studio (solo para desarrollo y depuración) y Open WebUI
 - Métricas: precisión de extracción por campo, acierto del router, coste por estudio, latencia, % de escalados.
 - Comparar edge vs mid vs frontier en cada tarea para ajustar el router.
 
+## 8b. Flujo prioritario: subrogación
+
+Entrada: datos de la hipoteca actual (capital pendiente, tipo, TIN, diferencial, plazo restante, cuota, vinculaciones) y escritura o último recibo.
+1. Gestor financiero extrae los datos del préstamo actual y calcula el coste de seguir como está.
+2. Buscador obtiene ofertas de subrogación de entidades en Madrid (scraping) y tipos de referencia del Banco de España.
+3. Calculadora determinista: cuota nueva, ahorro mensual y total, comisión de amortización/subrogación de la entidad actual (límites legales de la LCCI), coste de tasación, notaría y registro, y punto de equilibrio en meses.
+4. Analista de mercado explica el contexto (Euríbor, tendencia) y riesgos (vinculaciones, seguros).
+5. Redactor genera el informe: "compensa o no cambiar" con cifras.
+
+Fuentes: scraping de entidades y Banco de España (research con Opus en hilo aparte). Subrogación entra en la Fase 1.
+
 ## 9. Fases
 1. Fase 0: este documento, decisiones abiertas cerradas.
-2. Fase 1: esqueleto LangGraph, LiteLLM con un nodo edge y Claude, calculadora financiera, RAG con sección 2.
+2. Fase 1: esqueleto LangGraph, flujo de subrogación para Madrid, LiteLLM con un nodo edge y Claude, calculadora financiera, RAG con sección 2.
 3. Fase 2: Gestor financiero con extracción de nóminas e IRPF, anonimización.
 4. Fase 3: Buscador con 5-10 entidades, normalización y puntuación.
 5. Fase 4: router aprendido con métricas reales, más nodos, perfiles extranjeros y empresas.
