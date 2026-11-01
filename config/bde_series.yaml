@@ -1,0 +1,21 @@
+# Series oficiales para el Analista y la calculadora. v0.1 (2026-11-01).
+# Códigos tomados de las cabeceras de los CSV del BdE; pendiente probarlos contra la API.
+# Euríbor: tomarlo del BdE (EMMI solo permite uso no comercial).
+api:
+  base: "https://app.bde.es/bierest/resources/srdatosapp/"
+  ultimo: "favoritas?idioma=es&series={codigos}"
+  historico: "listaSeries?idioma=es&series={codigos}&rango={rango}"   # D: 3M/12M/36M; M: 30M/60M/MAX
+  frecuencia_cron: diaria
+series:
+  euribor_12m_mensual: {codigo: D_1NBAF472, tabla: BE_19_1.5, uso: [calculadora, revision_variable]}
+  euribor_12m_diario:  {codigo: D_DNBAF172, uso: [analista]}
+  irph_entidades:      {codigo: D_1T9H0000, uso: [gestor_hipoteca_antigua]}
+  tedr_vivienda_nuevas: {codigo: DN_1TI2T0002, uso: [analista_benchmark]}
+  tedr_vivienda_por_fijacion: {codigos: [DN_1TI2T0003, DN_1TI2T0004, DN_1TI2T0005, DN_1TI2T0006], uso: [analista_benchmark]}
+  tae_vivienda_nuevas: {codigo: DN_1TI2T0082, uso: [analista_benchmark]}
+respaldo_csv:
+  - https://www.bde.es/webbe/es/estadisticas/compartido/datos/csv/be1901.csv
+  - https://www.bde.es/webbe/es/estadisticas/compartido/datos/csv/be1904.csv
+  - https://www.bde.es/webbe/es/estadisticas/compartido/datos/csv/be1906.csv
+ine:
+  tabla_24456: "https://servicios.ine.es/wstempus/js/es/DATOS_TABLA/24456?tip=AM"

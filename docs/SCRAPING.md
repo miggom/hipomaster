@@ -213,7 +213,7 @@ Impacto en el scraping:
 API JSON pública, sin clave:
 - Último dato: `https://app.bde.es/bierest/resources/srdatosapp/favoritas?idioma=es&series=<códigos>`
 - Serie histórica: `https://app.bde.es/bierest/resources/srdatosapp/listaSeries?idioma=es&series=<códigos>&rango=30M` (`rango`: 3M/12M/36M diarias; 30M/60M/MAX mensuales; o un año).
-- Códigos de serie: buscarlos en BIEST o en los CSV de las tablas de tipos de interés (Euríbor 12m, IRPH, tipos medios de nuevas hipotecas). Tarea pendiente: fijarlos en `config/bde_series.yaml`.
+- Códigos de serie en `config/bde_series.yaml` (Euríbor 12m `D_1NBAF472`, IRPH `D_1T9H0000`, TEDR vivienda `DN_1TI2T0002`, TAE vivienda `DN_1TI2T0082`), pendientes de probar en vivo. Respaldo: CSV be1901/be1904/be1906. Euríbor siempre del BdE: EMMI solo permite uso no comercial.
 
 Uso:
 | Dato | Agente | Para qué |
@@ -275,7 +275,7 @@ Despliegue: fitlet2 nº 4 ejecuta fetch y extracción 3B. Cabe en 8 GB con marge
 ## 10. Próximos pasos
 
 1. Completar `config/entidades.yaml` (borrador creado) con URLs verificadas, `robots.txt` y términos. La lista de entidades la cierra el hilo de investigación de mercado.
-2. Fijar códigos de serie del BdE en `config/bde_series.yaml` y cliente de la API.
+2. Probar los códigos de `config/bde_series.yaml` y escribir el cliente de la API.
 3. Calculadora `coste_cambio()` y modelo `HipotecaActual` para que doc pruebe su subrogación.
 4. Prototipo de scraping con 4 entidades de subrogación (Ibercaja, Sabadell, Kutxabank, ING) + `llms-full.txt`.
 5. Prompt del extractor `prompts/buscador/v1.md` y pruebas con 10 páginas reales.
