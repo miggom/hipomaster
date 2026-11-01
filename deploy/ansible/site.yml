@@ -1,0 +1,65 @@
+# Esqueleto de provisión. Los roles se implementan en Fase 1 (docs/DESPLIEGUE.md §3.3).
+- name: Base para todos los nodos
+  hosts: all
+  become: true
+  tasks:
+    - name: Zona horaria
+      community.general.timezone: { name: "{{ timezone }}" }
+    - name: Paquetes base
+      ansible.builtin.apt:
+        name: [unattended-upgrades, ufw, chrony, zram-tools, curl, prometheus-node-exporter]
+        update_cache: true
+    - name: ufw permite todo por tailscale0
+      community.general.ufw: { rule: allow, interface: tailscale0, direction: in }
+    - name: ufw deniega el resto de entrada
+      community.general.ufw: { state: enabled, policy: deny, direction: incoming }
+    - name: Límite de journald
+      ansible.builtin.lineinfile:
+        path: /etc/systemd/journald.conf
+        regexp: '^#?SystemMaxUse='
+        line: SystemMaxUse=500M
+
+- name: Ollama en nodos edge
+  hosts: edge
+  become: true
+  tasks:
+    - name: Instalar Ollama
+      ansible.builtin.shell: curl -fsSL https://ollama.com/install.sh | sh
+      args: { creates: /usr/local/bin/ollama }
+    - name: IP de Tailscale
+      ansible.builtin.command: tailscale ip -4
+      register: ts_ip
+      changed_when: false
+    - name: Override systemd
+      ansible.builtin.template:
+        src: ../edge/ollama.override.conf
+        dest: /etc/systemd/system/ollama.service.d/override.conf
+      vars: { tailscale_ip: "{{ ts_ip.stdout }}" }
+      notify: restart ollama
+    - name: Descargar modelos
+      ansible.builtin.command: "ollama pull {{ item }}"
+      environment: { OLLAMA_HOST: "{{ ts_ip.stdout }}:11434" }
+      loop: "{{ ollama_models }}"
+      changed_when: false
+  handlers:
+    - name: restart ollama
+      ansible.builtin.systemd: { name: ollama, state: restarted, daemon_reload: true }
+
+- name: Docker en core y scraper
+  hosts: core:scraper
+  become: true
+  tasks:
+    - name: Docker Engine y compose
+      ansible.builtin.apt: { name: [docker.io, docker-compose-v2], update_cache: true }
+
+- name: Timers del scraper
+  hosts: scraper
+  become: true
+  tasks:
+    - name: Copiar unidades systemd
+      ansible.builtin.copy:
+        src: "../edge/{{ item }}"
+        dest: "/etc/systemd/system/{{ item }}"
+      loop: [hipomaster-scraper.service, hipomaster-scraper.timer]
+    - name: Activar timer
+      ansible.builtin.systemd: { name: hipomaster-scraper.timer, enabled: true, state: started, daemon_reload: true }

@@ -1,0 +1,9 @@
+[Unit]
+Description=Euríbor y tipos del Banco de España (diario 07:30)
+
+[Timer]
+OnCalendar=*-*-* 07:30:00 Europe/Madrid
+Persistent=true
+
+[Install]
+WantedBy=timers.target

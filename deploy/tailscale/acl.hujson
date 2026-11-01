@@ -1,0 +1,23 @@
+// Política de la tailnet. Copiar a la consola de Tailscale. Ver docs/DESPLIEGUE.md §5.
+{
+  "tagOwners": {
+    "tag:admin":   ["autogroup:admin"],
+    "tag:core":    ["autogroup:admin"],
+    "tag:edge":    ["autogroup:admin"],
+    "tag:scraper": ["autogroup:admin"],
+    "tag:ci":      ["autogroup:admin"],
+  },
+  "acls": [
+    // doc (sus dispositivos) accede a todo
+    {"action": "accept", "src": ["autogroup:member", "tag:admin"], "dst": ["*:*"]},
+    // la VM llama a Ollama en los fitlet2
+    {"action": "accept", "src": ["tag:core"], "dst": ["tag:edge:11434"]},
+    // el scraper escribe en Postgres y usa LiteLLM como respaldo
+    {"action": "accept", "src": ["tag:scraper"], "dst": ["tag:core:5432", "tag:core:4000"]},
+    // CI despliega por SSH
+    {"action": "accept", "src": ["tag:ci"], "dst": ["tag:core:22", "tag:edge:22"]},
+  ],
+  "ssh": [
+    {"action": "accept", "src": ["autogroup:member"], "dst": ["tag:core", "tag:edge"], "users": ["ops"]},
+  ],
+}
