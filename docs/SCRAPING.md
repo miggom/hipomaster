@@ -1,6 +1,7 @@
 # Obtención de ofertas hipotecarias (agente Buscador)
 
-Estado: propuesta v0.1 para revisión. Fecha: 2026-11-01.
+Estado: propuesta v0.2 para revisión. Fecha: 2026-11-01.
+Prioridades fijadas por doc: Madrid primero, **subrogación prioritaria**, fuentes = scraping + Banco de España.
 Relacionado: [ARQUITECTURA.md](ARQUITECTURA.md) (secciones 3.1 y 6).
 
 ## 1. Resumen y recomendación
@@ -102,6 +103,11 @@ class Sector(str, Enum):
     terreno_rustico = "terreno_rustico"
     nave = "nave"
 
+class Operacion(str, Enum):
+    compra = "compra"
+    subrogacion = "subrogacion"          # subrogación acreedora (se mantiene la escritura)
+    cambio_banco = "cambio_banco"        # cancelación + hipoteca nueva (p. ej. Openbank)
+
 class Bonificacion(BaseModel):
     concepto: str                       # "nómina", "seguro hogar", "seguro vida", "tarjeta", "plan pensiones"
     reduccion_pp: Decimal               # puntos porcentuales que rebaja
@@ -137,6 +143,10 @@ class Offer(BaseModel):
     producto: str                       # nombre comercial
     tipo: TipoInteres
     sectores: list[Sector] = [Sector.vivienda_habitual]
+    operaciones: list[Operacion] = [Operacion.compra]
+    ambito: list[str] = ["nacional"]    # o códigos CCAA/provincia, p. ej. ["MD"]
+    aval_publico: list[str] = []        # p. ej. ["mi_primera_vivienda_madrid", "ico"]
+    paga_tasacion_banco: bool | None = None   # relevante en subrogación
     tramos: list[Tramo]
     tin_bonificado: Decimal | None = None
     tin_sin_bonificar: Decimal | None = None
@@ -168,13 +178,67 @@ Reglas de validación mínimas:
 
 Tablas: `offers` (vigente por entidad+producto) y `offer_history` (todas las versiones, para ver tendencias).
 
+## 5bis. Subrogación (prioridad 1)
+
+Para comparar un cambio de banco hace falta, además de la `Offer`, la hipoteca actual del cliente y el coste del cambio. Lo calcula código, no el LLM.
+
+```python
+class HipotecaActual(BaseModel):
+    entidad: str
+    fecha_firma: date                   # decide si aplica Ley 5/2019 (desde 16/06/2019)
+    capital_pendiente: Decimal
+    plazo_restante_meses: int
+    tipo: TipoInteres
+    tin_actual: Decimal
+    indice: str | None = None
+    diferencial: Decimal | None = None
+    fin_tramo_fijo: date | None = None
+    comision_reembolso_pactada: str | None = None   # texto de la escritura
+    productos_vinculados: list[Bonificacion] = []
+```
+
+Reglas de la calculadora `coste_cambio()` (resumen de la Ley 5/2019, a contrastar con el BOE):
+- Hipotecas desde el 16/06/2019. Variable: máximo 0,25 % los 3 primeros años o 0,15 % los 5 primeros (lo pactado), después 0 %. Fija: 2 % los 10 primeros años, 1,5 % después. Mixta: cada tramo con su regla.
+- Paso de variable a fija (o mixta con 3+ años fijos): máximo 0,05 % los 3 primeros años, 0 % después. Aplica también a hipotecas anteriores a 2019.
+- Hipotecas anteriores a 2019: lo pactado en la escritura (el Gestor lo extrae del documento).
+- Notaría, registro, gestoría y AJD los paga el banco. Tasación: el cliente (250-450 €) salvo que el banco la bonifique.
+- Resultado: ahorro neto = diferencia de cuotas a plazo restante, menos comisión y tasación, menos coste anual de bonificaciones. Se da también el punto de equilibrio en meses.
+
+Impacto en el scraping:
+- En `config/entidades.yaml` cada entidad lleva `acepta_subrogacion` y URL específica de subrogación si existe. Se rastrean primero.
+- Entidades conocidas con oferta de subrogación (Rankia, 01/10/2026, a verificar en web oficial): Ibercaja, Sabadell, Kutxabank, ING; Openbank lo hace como cancelación + hipoteca nueva (`cambio_banco`); BBVA también compite según la misma fuente.
+
+## 5ter. Banco de España (fuente oficial)
+
+API JSON pública, sin clave:
+- Último dato: `https://app.bde.es/bierest/resources/srdatosapp/favoritas?idioma=es&series=<códigos>`
+- Serie histórica: `https://app.bde.es/bierest/resources/srdatosapp/listaSeries?idioma=es&series=<códigos>&rango=30M` (`rango`: 3M/12M/36M diarias; 30M/60M/MAX mensuales; o un año).
+- Códigos de serie: buscarlos en BIEST o en los CSV de las tablas de tipos de interés (Euríbor 12m, IRPH, tipos medios de nuevas hipotecas). Tarea pendiente: fijarlos en `config/bde_series.yaml`.
+
+Uso:
+| Dato | Agente | Para qué |
+|---|---|---|
+| Euríbor 12m (mensual oficial) | Analista, calculadora | cuotas de variables y mixtas, revisión de la hipoteca actual |
+| Tipo medio de nuevas hipotecas | Analista | ver si una oferta está por encima o debajo del mercado |
+| IRPH | Gestor | clientes con hipoteca antigua referenciada a IRPH |
+| Registro de entidades | Buscador | validar que la entidad está autorizada |
+
+No es scraping: se llama a la API con cron diario y se guarda en Postgres (`market_series`).
+
+## 5quater. Madrid primero
+
+- `ambito` en `Offer` y en `entidades.yaml`. Se rastrean primero entidades nacionales y las que operan en Madrid.
+- Aval público: programa "Mi Primera Vivienda" de la Comunidad de Madrid (aval hasta 95-100 % de financiación; edad ampliada según las últimas reformas, a verificar). Se marca qué entidades están adheridas (`aval_publico`). Fuentes: comunidad.madrid y páginas de los bancos (p. ej. Santander tiene página específica).
+- No aplica a subrogación; solo a compra de primera vivienda.
+
 ## 6. Frecuencia
 
 | Dato | Frecuencia | Motivo |
 |---|---|---|
 | Páginas y PDF de bancos | semanal (domingo noche) | cambian pocas veces al mes |
 | Comparador agregado | semanal, mismo día | verificación cruzada |
-| Euríbor (BdE) | diaria, valor mensual oficial | lo usa el Analista |
+| API Banco de España | diaria | Euríbor, tipos medios, IRPH |
+| Páginas de subrogación | 2 veces por semana mientras doc prueba su cambio | prioridad |
 | Revisión manual de cola de errores | semanal | 5-15 min |
 
 ## 7. Herramientas y recursos
@@ -210,12 +274,18 @@ Despliegue: fitlet2 nº 4 ejecuta fetch y extracción 3B. Cabe en 8 GB con marge
 
 ## 10. Próximos pasos
 
-1. Crear `config/entidades.yaml` con URLs de las 20 entidades y revisar `robots.txt` y términos de cada una (tarea de research).
-2. Prototipo con 3 bancos (uno http, uno con JS, uno solo PDF) + `llms-full.txt`.
-3. Prompt del extractor `prompts/buscador/v1.md` y pruebas con 10 páginas reales.
-4. Medir precisión del 3B frente a revisión manual. Si < 90 % de campos correctos, pasar a 7B en la VM.
+1. Completar `config/entidades.yaml` (borrador creado) con URLs verificadas, `robots.txt` y términos. La lista de entidades la cierra el hilo de investigación de mercado.
+2. Fijar códigos de serie del BdE en `config/bde_series.yaml` y cliente de la API.
+3. Calculadora `coste_cambio()` y modelo `HipotecaActual` para que doc pruebe su subrogación.
+4. Prototipo de scraping con 4 entidades de subrogación (Ibercaja, Sabadell, Kutxabank, ING) + `llms-full.txt`.
+5. Prompt del extractor `prompts/buscador/v1.md` y pruebas con 10 páginas reales.
+6. Medir precisión del 3B frente a revisión manual. Si < 90 % de campos correctos, pasar a 7B en la VM.
 
 ## Fuentes
+- [Banco de España: API de estadísticas](https://www.bde.es/webbe/es/estadisticas/recursos/api-estadisticas-bde.html)
+- [Rankia: mejores hipotecas para subrogación (act. 01/10/2026)](https://www.rankia.com/blog/mejores-hipotecas/3505091-mejores-hipotecas-para-subrogacion)
+- [hipotecas.me: comisiones de subrogación con la Ley 5/2019](https://www.hipotecas.me/guias/subrogacion-hipoteca/comisiones-subrogacion-ley-2019)
+- [Comunidad de Madrid: Mi Primera Vivienda](https://www.comunidad.madrid/node/64190)
 - [hipotecas.me, llms-full.txt](https://www.hipotecas.me/llms-full.txt)
 - [Banco de España, Portal del Cliente Bancario: tipo de interés de hipotecas fijas](https://clientebancario.bde.es/pcb/es/blog/tipo-de-interes-de-prestamos-hipotecarios-a-tipo-fijo-para-compra-de-vivienda-habitual.html)
 - [Ley 5/2019, BOE-A-2019-6301](https://www.boe.es/boe/dias/2019/04/29/pdfs/BOE-A-2019-6301.pdf)

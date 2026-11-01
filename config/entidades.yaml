@@ -1,0 +1,41 @@
+# Entidades a rastrear por el Buscador. Borrador v0.1 (2026-11-01).
+# La lista definitiva la cierra el hilo de investigación de mercado.
+# Campos marcados null o "verificar" se completan tras revisar web, robots.txt y términos.
+# prioridad: 1 = subrogación conocida (doc la prueba ya), 2 = gran banco nacional, 3 = resto.
+version: 0.1
+defaults:
+  frecuencia: semanal
+  metodo: http            # http | browser | pdf | manual
+  ambito: [nacional]
+  robots_ok: null         # true/false tras revisar robots.txt
+  terminos_ok: null       # true/false tras revisar términos de uso
+  urls_producto: []
+  url_subrogacion: null
+  url_pdf_precontractual: null
+  aval_publico: []        # mi_primera_vivienda_madrid, ico
+entidades:
+  - {id: ibercaja,    nombre: Ibercaja,        dominio: www.ibercaja.es,      prioridad: 1, acepta_subrogacion: true,  frecuencia: bisemanal}
+  - {id: sabadell,    nombre: Banco Sabadell,  dominio: www.bancsabadell.com, prioridad: 1, acepta_subrogacion: true,  frecuencia: bisemanal}
+  - {id: kutxabank,   nombre: Kutxabank,       dominio: www.kutxabank.es,     prioridad: 1, acepta_subrogacion: true,  frecuencia: bisemanal}
+  - {id: ing,         nombre: ING,             dominio: www.ing.es,           prioridad: 1, acepta_subrogacion: true,  frecuencia: bisemanal}
+  - {id: openbank,    nombre: Openbank,        dominio: www.openbank.es,      prioridad: 1, acepta_subrogacion: false, cambio_banco: true, frecuencia: bisemanal}
+  - {id: bbva,        nombre: BBVA,            dominio: www.bbva.es,          prioridad: 1, acepta_subrogacion: verificar}
+  - {id: santander,   nombre: Banco Santander, dominio: www.bancosantander.es, prioridad: 2, acepta_subrogacion: verificar, aval_publico: [mi_primera_vivienda_madrid]}
+  - {id: caixabank,   nombre: CaixaBank,       dominio: www.caixabank.es,     prioridad: 2, acepta_subrogacion: verificar, aval_publico: [mi_primera_vivienda_madrid]}
+  - {id: bankinter,   nombre: Bankinter,       dominio: www.bankinter.com,    prioridad: 2, acepta_subrogacion: verificar}
+  - {id: unicaja,     nombre: Unicaja,         dominio: www.unicajabanco.es,  prioridad: 2, acepta_subrogacion: verificar, aval_publico: [mi_primera_vivienda_madrid]}
+  - {id: abanca,      nombre: Abanca,          dominio: www.abanca.com,       prioridad: 3, acepta_subrogacion: verificar}
+  - {id: myinvestor,  nombre: MyInvestor,      dominio: myinvestor.es,        prioridad: 3, acepta_subrogacion: verificar}
+  - {id: evo,         nombre: EVO Banco,       dominio: www.evobanco.com,     prioridad: 3, acepta_subrogacion: verificar}
+  - {id: cajamar,     nombre: Cajamar,         dominio: www.cajamar.es,       prioridad: 3, acepta_subrogacion: verificar}
+  - {id: caja_rural,  nombre: Grupo Caja Rural, dominio: www.ruralvia.com,    prioridad: 3, acepta_subrogacion: verificar}
+  - {id: laboral_kutxa, nombre: Laboral Kutxa, dominio: www.laboralkutxa.com, prioridad: 3, acepta_subrogacion: verificar}
+  - {id: deutsche_bank, nombre: Deutsche Bank España, dominio: www.deutsche-bank.es, prioridad: 3, acepta_subrogacion: verificar}
+  - {id: uci,         nombre: UCI,             dominio: www.uci.com,          prioridad: 3, acepta_subrogacion: verificar}
+  - {id: targobank,   nombre: Targobank,       dominio: www.targobank.es,     prioridad: 3, acepta_subrogacion: verificar}
+  - {id: mediolanum,  nombre: Banco Mediolanum, dominio: www.bancomediolanum.es, prioridad: 3, acepta_subrogacion: verificar}
+agregadores:
+  - {id: hipotecas_me, url: "https://www.hipotecas.me/llms-full.txt", uso: arranque_y_verificacion, cita: "hipotecas.me (fecha)"}
+banco_espana:
+  api_base: "https://app.bde.es/bierest/resources/srdatosapp/"
+  series: config/bde_series.yaml   # pendiente: códigos de Euríbor 12m, IRPH, tipo medio nuevas hipotecas
