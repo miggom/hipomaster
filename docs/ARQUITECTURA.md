@@ -14,48 +14,13 @@ Dentro del MVP:
 
 Fuera del MVP: no residentes, sociedades, promotores, refinanciaciones complejas, firma o envío de solicitudes al banco.
 
-## 2. Contexto del mercado hipotecario español (base de conocimiento)
+## 2. Contexto del mercado hipotecario español
 
-Este bloque alimenta el RAG del Analista de mercado y las reglas del Gestor financiero. Hay que verificarlo y fecharlo en cada actualización; los valores numéricos son orientativos.
+La fuente única es [docs/contexto-mercado-hipotecario-es.md](contexto-mercado-hipotecario-es.md) (rama `claude/project-thread-vshamp`). Los parámetros por sector (LTV, plazo, diferencial) están en `config/sectores.yaml`.
 
-### 2.1 Marco legal
-- Ley 5/2019 de Crédito Inmobiliario (LCCI). Aplica a préstamos a personas físicas con garantía hipotecaria sobre inmuebles residenciales (incluye garajes y trasteros) y a préstamos a consumidores para comprar terrenos o inmuebles construidos o por construir. Por tanto locales, naves y terrenos comprados por un consumidor también quedan protegidos.
-- Documentos obligatorios: FEIN (ficha europea normalizada, vinculante) y FiAE (advertencias estandarizadas). Plazo mínimo de 10 días naturales entre FEIN y firma. Acta notarial previa gratuita.
-- Gastos: el banco paga notaría, registro, gestoría y AJD. El cliente paga tasación (y la copia de escritura si la pide).
-- Comisiones máximas por amortización anticipada y por cambio de variable a fijo: topadas por ley según tipo de préstamo y años transcurridos.
-- Orden ECO/805/2003: tasación por sociedad homologada; el valor de tasación limita el LTV.
-- Protección de datos: RGPD y LOPDGDD. Los documentos del cliente son datos personales y financieros.
-- Transparencia: Orden EHA/2899/2011 (préstamo responsable) y Circular 5/2012 de Banco de España.
-
-### 2.2 Productos
-- Tipo fijo, variable (Euríbor 12 meses + diferencial) y mixto (fijo X años, luego variable).
-- Indicadores clave: TIN, TAE, TAE variable, diferencial, coste total, cuota, vinculación.
-- Bonificaciones típicas: nómina domiciliada, seguro de hogar, seguro de vida, plan de pensiones, tarjeta, recibos. Hay que comparar la TAE con y sin bonificaciones y el coste real de los seguros.
-- Programas públicos: aval ICO para jóvenes y familias con menores (financiación hasta el 100% en vivienda habitual) y programas autonómicos. Depende de edad, ingresos y comunidad.
-
-### 2.3 Reglas de riesgo habituales por tipo de inmueble (orientativo)
-| Inmueble | LTV máx. típico | Plazo máx. típico | Notas |
-|---|---|---|---|
-| Vivienda habitual | 80% (90-100% con aval ICO o casos excepcionales) | 30-40 años, edad fin ≤ 70-75 | Mejores condiciones |
-| Segunda vivienda | 60-70% | 25-30 años | Diferencial mayor |
-| Garaje / trastero | 50-70% | 15-20 años | A menudo dentro de la hipoteca de la vivienda |
-| Local comercial | 50-60% | 15-20 años | Riesgo mayor, valora rentas si está alquilado |
-| Nave | 50-60% | 15-20 años | Pocas entidades para particulares |
-| Terreno | 50% o menos (urbano); rústico muy limitado | 10-15 años | Autopromoción va aparte |
-
-### 2.4 Solvencia del cliente
-- Ratio de endeudamiento (cuotas / ingresos netos): 30-35% recomendado, 40% límite habitual.
-- Ahorro previo: 20% del precio + gastos de compra (aprox. 10-12%).
-- Impuestos de compra: ITP 6-10% según comunidad en segunda mano; IVA 10% en vivienda nueva (21% en locales, naves, terrenos y garajes no anejos) más AJD.
-- Estabilidad laboral: contrato indefinido, antigüedad, autónomos con 2-3 años de declaraciones.
-- Documentación típica: DNI, nóminas (3-6), vida laboral, IRPF, extractos bancarios, contrato de trabajo, CIRBE, nota simple, contrato de arras.
-
-### 2.5 Fuentes de datos
-- Banco de España: tipos de referencia oficiales (Euríbor, IRPH), estadísticas de tipos medios.
-- INE: estadística de hipotecas (número, importe, tipo medio).
-- Notariado y Registradores: estadísticas de compraventas y precios.
-- Webs de entidades: condiciones públicas de cada producto (fuente primaria de ofertas).
-- Comparadores públicos: solo como contraste. Respetar términos de uso y robots.txt.
+Uso en el sistema:
+- El documento de contexto se indexa en pgvector y alimenta el RAG del Analista de mercado.
+- `sectores.yaml` lo leen el Gestor financiero y la calculadora para filtrar elegibilidad. No se copia en los prompts.
 
 ## 3. Arquitectura lógica (LangGraph)
 
