@@ -122,28 +122,38 @@ Notas:
 - Gestor: "Eres gestor financiero. Extraes datos de documentos del cliente al esquema y señalas inconsistencias. Las cifras las calcula la herramienta."
 - Redactor: "Explicas el resultado en español claro, sin jerga, con avisos legales estándar."
 
-## 6. Infraestructura y dimensionado
+## 6. Infraestructura y dimensionado (hardware confirmado)
 
-### 6.1 Nodos edge (fitlet2)
-- CPU Intel Atom x5-E3950 o Celeron J3455, 4 núcleos, sin GPU útil para LLM. RAM hasta 16 GB.
-- Rendimiento esperado (estimación, a medir): 3B Q4 unos 3-6 tokens/s; 1.5B Q4 unos 6-12 tokens/s. Sirve para respuestas cortas y clasificación, no para documentos largos.
-- Recomendado: 16 GB RAM, SSD, Ollama con `OLLAMA_NUM_PARALLEL=1`, `OLLAMA_MAX_LOADED_MODELS=2`, `num_thread=4`, un modelo de chat + uno de embeddings por nodo.
-- Varios fitlet2 detrás de LiteLLM con balanceo round-robin. Cada nodo atiende una petición a la vez.
+Recursos disponibles:
+- 4 fitlet2 con 8 GB RAM cada uno, Ollama, sin GPU.
+- 1 VM Ubuntu con 16 GB RAM (sin GPU confirmada). Posible ampliación a AWS.
+- API DeepSeek (pro y flash) con saldo. Presupuesto total de APIs: 5 USD.
 
-### 6.2 VMs mid
-- Qwen 7B/8B en Q4: 6-8 GB VRAM. En FP16: unos 16 GB. Una GPU de 16-24 GB permite contexto de 32k y algo de concurrencia.
-- DeepSeek-R1-Distill 14B en Q4: unos 10-12 GB VRAM.
-- Si no hay GPU, un 7B en CPU va lento (2-5 tokens/s); usar solo en batch.
-- Servidor: vLLM para concurrencia, Ollama para simplicidad. RAM del host 32 GB, 8 vCPU, 100 GB disco.
+### 6.1 Nodos edge (fitlet2, 8 GB)
+- Modelos recomendados: Qwen2.5 3B Q4_K_M (~2.5 GB) para chat y clasificación; embeddings nomic-embed-text (~0.3 GB). Un 7B Q4 (~5 GB) cabe pero va a 1-3 tokens/s: solo en batch.
+- Reparto sugerido: nodo 1-2 chat/clasificación, nodo 3 embeddings y extracción simple, nodo 4 reserva y scraping.
+- `OLLAMA_NUM_PARALLEL=1`, `OLLAMA_MAX_LOADED_MODELS=2`, `num_ctx` 4k (máx. 8k).
+- Balanceo con LiteLLM.
 
-### 6.3 Servicios centrales
-- LangGraph server (o FastAPI + LangGraph) en contenedor.
-- Postgres (checkpointer, ofertas, perfiles) + pgvector para RAG.
-- Redis (colas, caché).
-- LiteLLM proxy.
-- Almacén de documentos cifrado (MinIO o disco cifrado).
-- Observabilidad: Langfuse (trazas, coste, evaluación) + Prometheus/Grafana.
-- Despliegue inicial: Docker Compose. Más adelante k3s si crecen los nodos.
+### 6.2 VM Ubuntu 16 GB (nivel mid local)
+- Qwen 7B/8B Q4 (~5 GB) con contexto 16k: cabe. DeepSeek-R1-Distill 14B Q4 (~9 GB) cabe justo, sin margen para otros servicios.
+- Sin GPU: 2-5 tokens/s. Usarla para tareas en batch (extracción de documentos, normalización de ofertas), no interactivas.
+- En la misma VM: LangGraph, Postgres+pgvector, Redis, LiteLLM, Langfuse. Con 16 GB, limitar el modelo a 7B.
+- Si se necesita más: AWS g5.xlarge (A10G 24 GB) bajo demanda, solo cuando haga falta.
+
+### 6.3 Nivel frontier con 5 USD
+- DeepSeek flash sustituye al nivel mid cuando se necesita rapidez o contexto largo. DeepSeek pro para razonamiento y evaluación final.
+- Claude solo para validación final de casos difíciles, con tope de gasto duro en LiteLLM (budget por día y por mes). Con 5 USD, usar Haiku/Sonnet y entradas cortas anonimizadas.
+- Tope sugerido: 0,5 USD/día y alerta al 80%.
+- Prioridad de escalado: edge, VM local, DeepSeek flash, DeepSeek pro, Claude.
+- Datos personales crudos solo en edge y VM local. A DeepSeek y Claude solo datos anonimizados.
+
+### 6.4 Servicios centrales
+LangGraph server, Postgres + pgvector, Redis, LiteLLM proxy, almacén cifrado, Langfuse. Docker Compose en la VM.
+
+### 6.5 Interfaz web
+Opción recomendada: **Agent Chat UI** (proyecto abierto de LangChain, Next.js). Se conecta directo a un servidor LangGraph, muestra el chat, las llamadas a herramientas y las interrupciones human-in-the-loop. Sin desarrollo de frontend en el MVP.
+Alternativas: LangGraph Studio (solo para desarrollo y depuración) y Open WebUI (más genérica, requiere adaptador).
 
 ## 7. Seguridad y cumplimiento
 - Cifrado en reposo y en tránsito. Acceso mínimo por servicio.
@@ -163,11 +173,11 @@ Notas:
 4. Fase 3: Buscador con 5-10 entidades, normalización y puntuación.
 5. Fase 4: router aprendido con métricas reales, más nodos, perfiles extranjeros y empresas.
 
-## 10. Preguntas abiertas
-1. ¿Cuántos fitlet2 hay y con cuánta RAM cada uno?
-2. ¿Las VMs tienen GPU? ¿Qué modelo y VRAM?
-3. "DeepSeek pro": ¿API de DeepSeek (V3/R1) o modelo autoalojado (distill 7B/14B)?
-4. ¿Presupuesto mensual para APIs (Claude, DeepSeek)?
-5. ¿Fuente de ofertas: scraping de webs de bancos, datos introducidos a mano, o acuerdos con entidades o brókers?
-6. ¿Interfaz del MVP: web, chat (Telegram/WhatsApp), o API?
-7. ¿Uso interno (asesor) o directo al cliente final? Afecta a requisitos legales.
+## 10. Decisiones y preguntas abiertas
+
+Cerradas (2026-11-01): 4 fitlet2 de 8 GB; VM Ubuntu 16 GB; DeepSeek pro y flash por API; presupuesto 5 USD; ofertas por scraping (hilo de research aparte); interfaz web preexistente (Agent Chat UI).
+
+Abiertas:
+1. ¿La VM tiene GPU? Se asume que no.
+2. ¿Uso interno (asesor) o cliente final? Afecta a requisitos legales.
+3. ¿Qué bancos se priorizan en el primer scraping?
