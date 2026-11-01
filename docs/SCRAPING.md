@@ -206,7 +206,8 @@ Reglas de la calculadora `coste_cambio()` (resumen de la Ley 5/2019, a contrasta
 
 Impacto en el scraping:
 - En `config/entidades.yaml` cada entidad lleva `acepta_subrogacion` y URL específica de subrogación si existe. Se rastrean primero.
-- Entidades conocidas con oferta de subrogación (Rankia, 01/10/2026, a verificar en web oficial): Ibercaja, Sabadell, Kutxabank, ING; Openbank lo hace como cancelación + hipoteca nueva (`cambio_banco`); BBVA también compite según la misma fuente.
+- Entidades con subrogación y URL oficial: BBVA, Santander, ING, Bankinter, Openbank (este como cancelación + nueva). Sin URL oficial: MyInvestor, Ibercaja, Sabadell, Kutxabank, CaixaBank, Unicaja. Detalle en `config/entidades.yaml` v0.2.
+- Hallazgo clave: las webs de los bancos **no publican tipos de subrogación** (son personalizados). Los tipos públicos están en comparadores (HelpMyCash, Kelisto, Rastreator, Rankia, idealista). Por eso, para subrogación: web oficial = condiciones y requisitos; comparador = tipo orientativo, solo si sus términos lo permiten; si no, se consulta a mano o se pide la oferta al banco. El precio real lo dará la oferta vinculante que doc solicite.
 
 ## 5ter. Banco de España (fuente oficial)
 

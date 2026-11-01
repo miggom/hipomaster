@@ -1,41 +1,102 @@
-# Entidades a rastrear por el Buscador. Borrador v0.1 (2026-11-01).
-# La lista definitiva la cierra el hilo de investigación de mercado.
-# Campos marcados null o "verificar" se completan tras revisar web, robots.txt y términos.
-# prioridad: 1 = subrogación conocida (doc la prueba ya), 2 = gran banco nacional, 3 = resto.
-version: 0.1
+# Entidades a rastrear por el Buscador. v0.2 (2026-11-01).
+# Fuente: informe "Hipotecas y subrogación Madrid 2026" (/mnt/project-files/contexto/).
+# Solo se ponen URLs oficiales si se verificaron. Fichas de comparadores van en `comparador`,
+# y solo se rastrean si sus términos lo permiten (ver docs/SCRAPING.md §2.3 y §3).
+# acepta_subrogacion: true | cambio_banco (cancelación + nueva) | sin_verificar (no equivale a false).
+# aval_publico = adhesión de la entidad al programa. Los avales son para compra, no para subrogación.
+# prioridad: 1 = subrogación con URL oficial, 2 = subrogación sin URL oficial, 3 = resto.
+version: 0.2
 defaults:
   frecuencia: semanal
   metodo: http            # http | browser | pdf | manual
   ambito: [nacional]
-  robots_ok: null         # true/false tras revisar robots.txt
-  terminos_ok: null       # true/false tras revisar términos de uso
+  robots_ok: null
+  terminos_ok: null
   urls_producto: []
   url_subrogacion: null
-  url_pdf_precontractual: null
-  aval_publico: []        # mi_primera_vivienda_madrid, ico
+  url_pdf_precontractual: null   # ninguna encontrada todavía
+  comparador: []
+  aval_publico: []
 entidades:
-  - {id: ibercaja,    nombre: Ibercaja,        dominio: www.ibercaja.es,      prioridad: 1, acepta_subrogacion: true,  frecuencia: bisemanal}
-  - {id: sabadell,    nombre: Banco Sabadell,  dominio: www.bancsabadell.com, prioridad: 1, acepta_subrogacion: true,  frecuencia: bisemanal}
-  - {id: kutxabank,   nombre: Kutxabank,       dominio: www.kutxabank.es,     prioridad: 1, acepta_subrogacion: true,  frecuencia: bisemanal}
-  - {id: ing,         nombre: ING,             dominio: www.ing.es,           prioridad: 1, acepta_subrogacion: true,  frecuencia: bisemanal}
-  - {id: openbank,    nombre: Openbank,        dominio: www.openbank.es,      prioridad: 1, acepta_subrogacion: false, cambio_banco: true, frecuencia: bisemanal}
-  - {id: bbva,        nombre: BBVA,            dominio: www.bbva.es,          prioridad: 1, acepta_subrogacion: verificar}
-  - {id: santander,   nombre: Banco Santander, dominio: www.bancosantander.es, prioridad: 2, acepta_subrogacion: verificar, aval_publico: [mi_primera_vivienda_madrid]}
-  - {id: caixabank,   nombre: CaixaBank,       dominio: www.caixabank.es,     prioridad: 2, acepta_subrogacion: verificar, aval_publico: [mi_primera_vivienda_madrid]}
-  - {id: bankinter,   nombre: Bankinter,       dominio: www.bankinter.com,    prioridad: 2, acepta_subrogacion: verificar}
-  - {id: unicaja,     nombre: Unicaja,         dominio: www.unicajabanco.es,  prioridad: 2, acepta_subrogacion: verificar, aval_publico: [mi_primera_vivienda_madrid]}
-  - {id: abanca,      nombre: Abanca,          dominio: www.abanca.com,       prioridad: 3, acepta_subrogacion: verificar}
-  - {id: myinvestor,  nombre: MyInvestor,      dominio: myinvestor.es,        prioridad: 3, acepta_subrogacion: verificar}
-  - {id: evo,         nombre: EVO Banco,       dominio: www.evobanco.com,     prioridad: 3, acepta_subrogacion: verificar}
-  - {id: cajamar,     nombre: Cajamar,         dominio: www.cajamar.es,       prioridad: 3, acepta_subrogacion: verificar}
-  - {id: caja_rural,  nombre: Grupo Caja Rural, dominio: www.ruralvia.com,    prioridad: 3, acepta_subrogacion: verificar}
-  - {id: laboral_kutxa, nombre: Laboral Kutxa, dominio: www.laboralkutxa.com, prioridad: 3, acepta_subrogacion: verificar}
-  - {id: deutsche_bank, nombre: Deutsche Bank España, dominio: www.deutsche-bank.es, prioridad: 3, acepta_subrogacion: verificar}
-  - {id: uci,         nombre: UCI,             dominio: www.uci.com,          prioridad: 3, acepta_subrogacion: verificar}
-  - {id: targobank,   nombre: Targobank,       dominio: www.targobank.es,     prioridad: 3, acepta_subrogacion: verificar}
-  - {id: mediolanum,  nombre: Banco Mediolanum, dominio: www.bancomediolanum.es, prioridad: 3, acepta_subrogacion: verificar}
+  - id: bbva
+    nombre: BBVA
+    prioridad: 1
+    acepta_subrogacion: true
+    url_subrogacion: https://www.bbva.es/personas/productos/hipotecas/subrogacion-hipotecas.html
+    aval_publico: [ico]
+    frecuencia: bisemanal
+  - id: santander
+    nombre: Banco Santander
+    prioridad: 1
+    acepta_subrogacion: true
+    notas: "LTV máx 70 % en subrogación"
+    url_subrogacion: https://www.bancosantander.es/particulares/hipotecas/cambiar-hipoteca-banco
+    aval_publico: [mi_primera_vivienda_madrid, ico]
+    frecuencia: bisemanal
+  - id: ing
+    nombre: ING
+    prioridad: 1
+    acepta_subrogacion: true
+    url_subrogacion: https://www.ing.es/hipotecas/cambiar-hipoteca-banco
+    notas: "página sin cifras; precio personalizado"
+    aval_publico: [mi_primera_vivienda_madrid]
+    frecuencia: bisemanal
+  - id: bankinter
+    nombre: Bankinter
+    prioridad: 1
+    acepta_subrogacion: true
+    url_subrogacion: https://www.bankinter.com/banca/hipotecas-prestamos/hipotecas/decisiones-financieras-hipoteca/traer-hipoteca-bankinter-subrogacion
+    urls_producto: [https://www.bankinter.com/banca/recursos-financieros/sobre-hipotecas/simulador-subrogacion-de-hipotecas]
+    metodo: browser       # la descarga simple falló
+    aval_publico: [mi_primera_vivienda_madrid, ico]
+    frecuencia: bisemanal
+  - id: openbank
+    nombre: Openbank
+    prioridad: 1
+    acepta_subrogacion: cambio_banco
+    url_subrogacion: https://www.openbank.es/cancelar-o-subrogar-hipoteca
+    comparador:
+      - https://www.helpmycash.com/hipotecas/openbank/trae-tu-hipoteca-fija/
+      - https://www.kelisto.es/hipotecas-fijas/bancos/openbank/hipoteca-fija-subrogacion-openbank
+    notas: "conflicto: HelpMyCash dice que la fija ya no se comercializa (07-05-2026)"
+    frecuencia: bisemanal
+  - id: myinvestor
+    nombre: MyInvestor
+    prioridad: 2
+    acepta_subrogacion: true
+    notas: "Sin Mochila; paga gastos y comisión de origen. Acuerdo con idealista"
+    url_subrogacion: https://myinvestor.es/myinvestor-acuerdo-idealista-subrogacion-hipotecas
+    comparador:
+      - https://www.helpmycash.com/hipotecas/myinvestor/subrogacion-hipoteca-sin-mochila-fija/
+      - https://www.helpmycash.com/hipotecas/myinvestor/subrogacion-hipoteca-sin-mochila-variable
+      - https://www.kelisto.es/hipotecas-fijas/bancos/myinvestor/hipoteca-sin-mochila-fija-subrogacion
+    frecuencia: bisemanal
+  - {id: ibercaja,  nombre: Ibercaja,       prioridad: 2, acepta_subrogacion: true, notas: "Fija y Mixta Vamos; resolver redirecciones Rankia 159683/159685", aval_publico: [mi_primera_vivienda_madrid, ico]}
+  - {id: sabadell,  nombre: Banco Sabadell, prioridad: 2, acepta_subrogacion: true, notas: "fija, variable, mixta; Rankia 95534/95532", aval_publico: [mi_primera_vivienda_madrid, ico]}
+  - {id: kutxabank, nombre: Kutxabank,      prioridad: 2, acepta_subrogacion: true, notas: "variable y mixta; Rankia 11640", aval_publico: [mi_primera_vivienda_madrid, ico]}
+  - {id: caixabank, nombre: CaixaBank,      prioridad: 2, acepta_subrogacion: true, notas: "Casa Fácil Fijo subrogación", aval_publico: [mi_primera_vivienda_madrid, ico]}
+  - {id: unicaja,   nombre: Unicaja,        prioridad: 2, acepta_subrogacion: true, aval_publico: [mi_primera_vivienda_madrid, ico]}
+  - {id: abanca,    nombre: Abanca,         prioridad: 3, acepta_subrogacion: sin_verificar, aval_publico: [mi_primera_vivienda_madrid, ico]}
+  - {id: cajamar,   nombre: Cajamar,        prioridad: 3, acepta_subrogacion: sin_verificar, aval_publico: [mi_primera_vivienda_madrid]}
+  - {id: uci,       nombre: UCI,            prioridad: 3, acepta_subrogacion: sin_verificar, aval_publico: [mi_primera_vivienda_madrid]}
+  - {id: eurocaja_rural, nombre: Eurocaja Rural, prioridad: 3, acepta_subrogacion: sin_verificar, ambito: [MD, CM], aval_publico: [mi_primera_vivienda_madrid]}
+  - {id: evo,       nombre: EVO Banco,      prioridad: 3, acepta_subrogacion: sin_verificar, notas: "posible cese de hipotecas nuevas tras absorción por Bankinter"}
+  - {id: caja_rural, nombre: Grupo Caja Rural, prioridad: 3, acepta_subrogacion: sin_verificar}
+  - {id: laboral_kutxa, nombre: Laboral Kutxa, prioridad: 3, acepta_subrogacion: sin_verificar}
+  - {id: deutsche_bank, nombre: Deutsche Bank España, prioridad: 3, acepta_subrogacion: sin_verificar}
+  - {id: targobank, nombre: Targobank,      prioridad: 3, acepta_subrogacion: sin_verificar}
+  - {id: mediolanum, nombre: Banco Mediolanum, prioridad: 3, acepta_subrogacion: sin_verificar}
+  - {id: coinc,     nombre: Coinc,          prioridad: 3, acepta_subrogacion: true, notas: "grupo Ibercaja"}
+  - {id: avantio,   nombre: Avantio (Banca March), prioridad: 3, acepta_subrogacion: true}
+  - {id: caixa_enginyers, nombre: Caixa d'Enginyers, prioridad: 3, acepta_subrogacion: true}
 agregadores:
-  - {id: hipotecas_me, url: "https://www.hipotecas.me/llms-full.txt", uso: arranque_y_verificacion, cita: "hipotecas.me (fecha)"}
+  # Las webs de bancos casi nunca publican tipos de subrogación (son personalizados).
+  # Los comparadores sí; rastrearlos solo si robots/términos lo permiten, si no, consulta manual.
+  - {id: hipotecas_me, url: "https://www.hipotecas.me/llms-full.txt", uso: arranque, terminos: "pide citar fuente"}
+  - {id: helpmycash_subrogacion, url: "https://www.helpmycash.com/hipotecas/mejores-hipotecas-subrogacion/", uso: verificacion, terminos: null}
+  - {id: kelisto_subrogacion, url: "https://www.kelisto.es/hipotecas/mejor-compra/mejor-subrogacion-hipoteca", uso: verificacion, terminos: null}
+  - {id: rastreator_subrogacion, url: "https://www.rastreator.com/hipotecas/guias/mejores-subrogaciones-hipoteca", uso: verificacion, terminos: null}
+  - {id: rankia_subrogacion, url: "https://www.rankia.com/blog/mejores-hipotecas/3505091-mejores-hipotecas-para-subrogacion", uso: verificacion, terminos: null}
+  - {id: idealista_subrogacion, url: "https://www.idealista.com/hipotecas/subrogar-hipoteca", uso: verificacion, terminos: null}
 banco_espana:
-  api_base: "https://app.bde.es/bierest/resources/srdatosapp/"
-  series: config/bde_series.yaml   # pendiente: códigos de Euríbor 12m, IRPH, tipo medio nuevas hipotecas
+  series: config/bde_series.yaml
