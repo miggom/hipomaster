@@ -1,0 +1,16 @@
+# edge-04. Scraping semanal de ofertas (docs/SCRAPING.md).
+[Unit]
+Description=HipoMaster scraping de ofertas
+After=docker.service tailscaled.service ollama.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+TimeoutStartSec=3h
+EnvironmentFile=/etc/hipomaster/scraper.env
+ExecStartPre=-/usr/bin/curl -fsS -m 10 ${HC_URL}/start
+ExecStart=/usr/bin/docker run --rm --name hipo-scraper --network host \
+  --memory 2g --env-file /etc/hipomaster/scraper.env \
+  ${SCRAPER_IMAGE}:${SCRAPER_TAG} run --all
+ExecStartPost=/usr/bin/curl -fsS -m 10 ${HC_URL}
+ExecStopPost=/bin/sh -c '[ "$SERVICE_RESULT" = success ] || /usr/bin/curl -fsS -m 10 ${HC_URL}/fail'

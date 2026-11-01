@@ -1,0 +1,67 @@
+# LiteLLM: pasarela única. Ver docs/DESPLIEGUE.md §12 y ARQUITECTURA.md §4 y §6.
+# Nombres de modelo de DeepSeek y Claude: verificar en cada API antes de desplegar.
+
+model_list:
+  # ---- edge: fitlet2 (mismo model_name = balanceo) ----
+  - model_name: edge-chat
+    litellm_params: { model: ollama_chat/qwen2.5:3b, api_base: os.environ/EDGE_01 }
+  - model_name: edge-chat
+    litellm_params: { model: ollama_chat/qwen2.5:3b, api_base: os.environ/EDGE_02 }
+  - model_name: edge-chat
+    litellm_params: { model: ollama_chat/qwen2.5:3b, api_base: os.environ/EDGE_04 }
+    model_info: { id: edge-04-chat }   # peso bajo; reserva y scraping
+  - model_name: edge-extract
+    litellm_params: { model: ollama_chat/qwen2.5:3b, api_base: os.environ/EDGE_03 }
+  - model_name: embeddings
+    litellm_params: { model: ollama/nomic-embed-text, api_base: os.environ/EDGE_03 }
+
+  # ---- mid: Ollama en la VM (perfil mid) ----
+  - model_name: mid-local
+    litellm_params: { model: ollama_chat/qwen2.5:7b, api_base: http://ollama-mid:11434 }
+
+  # ---- frontier: APIs de pago ----
+  - model_name: deepseek-flash
+    litellm_params: { model: deepseek/deepseek-chat, api_key: os.environ/DEEPSEEK_API_KEY }
+  - model_name: deepseek-pro
+    litellm_params: { model: deepseek/deepseek-reasoner, api_key: os.environ/DEEPSEEK_API_KEY }
+  - model_name: claude-haiku
+    litellm_params: { model: anthropic/claude-haiku-5-5, api_key: os.environ/ANTHROPIC_API_KEY, max_tokens: 2048 }
+  - model_name: claude-sonnet
+    litellm_params: { model: anthropic/claude-sonnet-5-5, api_key: os.environ/ANTHROPIC_API_KEY, max_tokens: 4096 }
+
+router_settings:
+  routing_strategy: least-busy
+  num_retries: 1
+  timeout: 300
+  allowed_fails: 3
+  cooldown_time: 60
+  redis_host: os.environ/REDIS_HOST
+  redis_port: os.environ/REDIS_PORT
+  # Orden de escalado: edge -> VM local -> DeepSeek flash -> DeepSeek pro -> Claude
+  fallbacks:
+    - edge-chat: [mid-local, deepseek-flash]
+    - edge-extract: [mid-local, deepseek-flash]
+    - mid-local: [deepseek-flash]
+    - deepseek-flash: [deepseek-pro]
+    - deepseek-pro: [claude-haiku]
+  # Topes por proveedor (USD)
+  provider_budget_config:
+    deepseek: { budget_limit: 3.00, time_period: 30d }
+    anthropic: { budget_limit: 1.50, time_period: 30d }
+
+litellm_settings:
+  max_budget: 4.50          # tope global USD
+  budget_duration: 30d
+  drop_params: true
+  success_callback: ["langfuse"]
+  failure_callback: ["langfuse"]
+  # No enviar contenido de mensajes a Langfuse desde aquí; el grafo envía trazas enmascaradas.
+  turn_off_message_logging: true
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: os.environ/DATABASE_URL
+  # Claves virtuales (crear con POST /key/generate):
+  #   agents  max_budget 4.00 budget_duration 30d
+  #   scraper max_budget 0.20 budget_duration 30d  models [edge-extract, deepseek-flash]
+  #   evals   max_budget 0.30 budget_duration 30d
