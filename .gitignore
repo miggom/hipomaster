@@ -1,0 +1,5 @@
+.env
+*.env
+!*.env.example
+!*.enc.env
+deploy/vm/.env
