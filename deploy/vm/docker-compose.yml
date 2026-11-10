@@ -67,7 +67,8 @@ services:
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY}
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY}
       LANGFUSE_HOST: http://langfuse-web:3000
-    volumes: [./litellm/config.yaml:/app/config.yaml:ro]
+    # LITELLM_CONFIG=config.local.yaml -> sin APIs de pago (docs/ALOJAMIENTO_LOCAL.md)
+    volumes: [./litellm/${LITELLM_CONFIG:-config.yaml}:/app/config.yaml:ro]
     ports: ["${BIND_IP:?}:4000:4000"]
     depends_on:
       postgres: { condition: service_healthy }
