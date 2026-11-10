@@ -11,6 +11,7 @@ Dentro del MVP:
 - Cliente: persona física residente, comprador español. Extranjeros y empresas quedan para perfiles posteriores.
 - Inmuebles: vivienda (habitual y segunda), local comercial, garaje, trastero, terreno, nave.
 - Operaciones: compra con hipoteca y **subrogación (cambio de banco), prioritaria**: el usuario la testeará con su propia hipoteca. Novación queda fuera del MVP.
+- Modalidades: fija, variable (Euríbor 12M + diferencial) y mixta, con escenarios de Euríbor. Ver [HIPOTECA_VARIABLE.md](HIPOTECA_VARIABLE.md).
 - Ámbito geográfico inicial: Madrid (ITP, bonificaciones y programas de la Comunidad de Madrid).
 
 Fuera del MVP: no residentes, sociedades, promotores, novaciones, firma o envío de solicitudes al banco.
@@ -130,6 +131,8 @@ Recursos disponibles:
 - 1 VM Ubuntu con 16 GB RAM (sin GPU confirmada). Posible ampliación a AWS.
 - API DeepSeek (pro y flash) con saldo. Presupuesto total de APIs: 5 USD.
 
+Modo de alojamiento `local` (sin APIs de pago) o `hibrido`: ver [ALOJAMIENTO_LOCAL.md](ALOJAMIENTO_LOCAL.md).
+
 ### 6.1 Nodos edge (fitlet2, 8 GB)
 - Modelos recomendados: Qwen2.5 3B Q4_K_M (~2.5 GB) para chat y clasificación; embeddings nomic-embed-text (~0.3 GB). Un 7B Q4 (~5 GB) cabe pero va a 1-3 tokens/s: solo en batch.
 - Reparto sugerido: nodo 1-2 chat/clasificación, nodo 3 embeddings y extracción simple, nodo 4 reserva y scraping.
@@ -169,7 +172,7 @@ Alternativas: LangGraph Studio (solo para desarrollo y depuración) y Open WebUI
 
 ## 8b. Flujo prioritario: subrogación
 
-Entrada: datos de la hipoteca actual (capital pendiente, tipo, TIN, diferencial, plazo restante, cuota, vinculaciones) y escritura o último recibo.
+Entrada: datos de la hipoteca actual (capital pendiente, modalidad fija/variable/mixta, TIN, diferencial, próxima revisión, plazo restante, cuota, vinculaciones) y escritura o último recibo.
 1. Gestor financiero extrae los datos del préstamo actual y calcula el coste de seguir como está.
 2. Buscador obtiene ofertas de subrogación de entidades en Madrid (scraping) y tipos de referencia del Banco de España.
 3. Calculadora determinista: cuota nueva, ahorro mensual y total, comisión de amortización/subrogación de la entidad actual (límites legales de la LCCI), coste de tasación, notaría y registro, y punto de equilibrio en meses.
